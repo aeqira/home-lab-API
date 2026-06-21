@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "home-lab",
+	"name": "home-lab-api",
 	"main": "worker/index.ts",
 	"compatibility_date": "2026-06-21",
 	"assets": {

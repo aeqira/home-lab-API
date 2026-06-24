@@ -53,7 +53,6 @@ app.get("/api/services/:id", (c) => {
 
 app.post("/api/services", async (c) => {
   const body = await c.req.json();
-  console.log("POST /api/services body:", body);
 
   if (!body.id || !body.name) {
     return c.json(
@@ -65,16 +64,20 @@ app.post("/api/services", async (c) => {
     );
   }
 
+  const status = body.status ?? "Local Network Only";
+  const description = body.description ?? "No description provided";
+
   const statusRow = await c.env.DB.prepare(
-    "SELECT ID FROM Statuses WHERE Description = ?",
+    "SELECT ID AS id FROM Statuses WHERE Description = ?",
   )
-    .bind(body.id, body.name, statusRow?.ID, description)
-    .first<{ ID: number }>();
+    .bind(status)
+    .first<{ id: number }>();
 
   if (!statusRow) {
     return c.json(
       {
         error: "Invalid status",
+        received: status,
         allowed: ["Offline", "Online", "Local Network Only", "Disabled"],
       },
       400,
@@ -84,20 +87,15 @@ app.post("/api/services", async (c) => {
   await c.env.DB.prepare(
     "INSERT INTO Services (ID, Name, Status, Description) VALUES (?, ?, ?, ?)",
   )
-    .bind(
-      body.ID,
-      body.Name,
-      statusRow.ID,
-      body.Description ?? "No description provided",
-    )
+    .bind(body.id, body.name, statusRow.id, description)
     .run();
 
   return c.json(
     {
-      id: body.ID,
-      name: body.Name,
-      status: body.Status ?? "Local Network Only",
-      description: body.Description ?? "No description provided",
+      id: body.id,
+      name: body.name,
+      status,
+      description,
     },
     201,
   );

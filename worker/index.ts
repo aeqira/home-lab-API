@@ -84,6 +84,22 @@ app.post("/api/services", async (c) => {
     );
   }
 
+  const existingService = await c.env.DB.prepare(
+    "SELECT ID FROM Services WHERE ID = ?",
+  )
+    .bind(body.id)
+    .first<{ id: string }>();
+
+  if (existingService) {
+    return c.json(
+      {
+        error: "Service already exists",
+        id: body.id,
+      },
+      409,
+    );
+  }
+
   await c.env.DB.prepare(
     "INSERT INTO Services (ID, Name, Status, Description) VALUES (?, ?, ?, ?)",
   )

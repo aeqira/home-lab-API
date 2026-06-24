@@ -1,33 +1,7 @@
-const app = new Hono<{ Bindings: Bindings }>();
-import type { Service } from "../src/types";
+import { Hono } from "hono";
 import type { Bindings } from "../src/bindings";
 
-const services: Service[] = [
-  {
-    id: "homeassistant",
-    name: "Home Assistant",
-    status: 2,
-    description: "Main smart home dashboard and automation hub",
-  },
-  {
-    id: "matter",
-    name: "Matter Server",
-    status: 2,
-    description: "Matter controller service for Home Assistant",
-  },
-  {
-    id: "otbr",
-    name: "OpenThread Border Router",
-    status: 2,
-    description: "Thread network border router",
-  },
-  {
-    id: "mosquitto",
-    name: "Mosquitto",
-    status: 2,
-    description: "MQTT broker for local smart home messaging",
-  },
-];
+const app = new Hono<{ Bindings: Bindings }>();
 
 app.get("api/health", (c) => {
   return c.json({

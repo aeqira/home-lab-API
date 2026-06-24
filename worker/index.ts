@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import type { Bindings } from "../src/bindings";
 import type { Service } from "../src/types";
 
+const services: Service[] = [];
+
 const app = new Hono<{ Bindings: Bindings }>();
 
 app.get("api/health", (c) => {
@@ -34,7 +36,7 @@ app.get("api/services", async (c) => {
 
 app.get("api/services/:id", (c) => {
   const id = c.req.param("id");
-  const service = .find((item) => item.id === id);
+  const service = services.find((item) => item.id === id);
 
   if (!service) {
     return c.json(
@@ -62,16 +64,42 @@ app.post("api/services", async (c) => {
     );
   }
 
-  const service = {
-    id: body.id,
-    name: body.name,
-    status: body.status ?? 2,
-    description: body.description ?? "No description provided",
-  };
+  const statusRow = await c.env.DB.prepare(
+    "SELECT ID FROM Statuses WHERE Description = ?",
+  )
+    .bind(body.status ?? "Local Network Only")
+    .first<{ id: number }>();
 
-  services.push(service);
+  if (!statusRow) {
+    return c.json(
+      {
+        error: "Invalid status",
+        allowed: ["Offline", "Online", "Local Network Only", "Disabled"],
+      },
+      400,
+    );
+  }
 
-  return c.json(service, 201);
+  await c.env.DB.prepare(
+    "INSERT INTO Services (ID, Name, Status, Description) VALUES (?, ?, ?, ?)",
+  )
+    .bind(
+      body.ID,
+      body.Name,
+      statusRow.id,
+      body.Description ?? "No description provided",
+    )
+    .run();
+
+  return c.json(
+    {
+      id: body.ID,
+      name: body.Name,
+      status: body.Status ?? "Local Network Only",
+      description: body.Description ?? "No description provided",
+    },
+    201,
+  );
 });
 
 app.delete("api/services/:id", (c) => {

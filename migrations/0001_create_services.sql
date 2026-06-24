@@ -1,7 +1,7 @@
 create table statuses (
     id integer primary key,
     description text not null
-)
+);
 
 create table services (
     id text primary key,

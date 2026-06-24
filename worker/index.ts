@@ -14,7 +14,7 @@ app.get("api/health", (c) => {
   });
 });
 
-app.get("api/services", async (c) => {
+app.get("/api/services", async (c) => {
   const { results } = await c.env.DB.prepare(
     `
     SELECT
@@ -34,7 +34,7 @@ app.get("api/services", async (c) => {
   });
 });
 
-app.get("api/services/:id", (c) => {
+app.get("/api/services/:id", (c) => {
   const id = c.req.param("id");
   const service = services.find((item) => item.id === id);
 
@@ -51,8 +51,9 @@ app.get("api/services/:id", (c) => {
   return c.json(service);
 });
 
-app.post("api/services", async (c) => {
+app.post("/api/services", async (c) => {
   const body = await c.req.json();
+  console.log("POST /api/services body:", body);
 
   if (!body.id || !body.name) {
     return c.json(
@@ -67,8 +68,8 @@ app.post("api/services", async (c) => {
   const statusRow = await c.env.DB.prepare(
     "SELECT ID FROM Statuses WHERE Description = ?",
   )
-    .bind(body.status ?? "Local Network Only")
-    .first<{ id: number }>();
+    .bind(body.id, body.name, statusRow?.ID, description)
+    .first<{ ID: number }>();
 
   if (!statusRow) {
     return c.json(
@@ -86,7 +87,7 @@ app.post("api/services", async (c) => {
     .bind(
       body.ID,
       body.Name,
-      statusRow.id,
+      statusRow.ID,
       body.Description ?? "No description provided",
     )
     .run();
@@ -102,7 +103,7 @@ app.post("api/services", async (c) => {
   );
 });
 
-app.delete("api/services/:id", (c) => {
+app.delete("/api/services/:id", (c) => {
   const id = c.req.param("id");
   const index = services.findIndex((item) => item.id === id);
 
@@ -124,7 +125,7 @@ app.delete("api/services/:id", (c) => {
   });
 });
 
-app.get("api/test-error", () => {
+app.get("/api/test-error", () => {
   throw new Error("This is a test error");
 });
 

@@ -19,7 +19,7 @@
 	],
 	"d1_databases": [
 		{
-			"binding": "home_lab_db",
+			"binding": "DB",
 			"database_name": "home-lab-db",
 			"database_id": "fce027a2-06c5-4794-975f-4be4ac0d0bcf",
 			"remote": true

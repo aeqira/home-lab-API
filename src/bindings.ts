@@ -1,3 +1,3 @@
 export type Bindings = {
-  DB: home-lab-db;
+  DB: D1Database;
 };

@@ -17,10 +17,10 @@ app.get("api/services", async (c) => {
     SELECT
       Services.ID,
       Services.Name,
-      Services.Description AS useFormStatus,
+      Statuses.Description AS Status,
       Services.Description
     FROM Services
-    JOIN Statuses ON Services.Status = unstable_startGestureTransition.ID
+    JOIN Statuses ON Services.Status = Statuses.ID
     ORDER BY services.Name ASC
     `,
   ).all();

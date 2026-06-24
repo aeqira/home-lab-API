@@ -21,8 +21,7 @@
 		{
 			"binding": "DB",
 			"database_name": "home-lab-db",
-			"database_id": "fce027a2-06c5-4794-975f-4be4ac0d0bcf",
-			"remote": true
+			"database_id": "fce027a2-06c5-4794-975f-4be4ac0d0bcf"
 		}
 	]
 	/**

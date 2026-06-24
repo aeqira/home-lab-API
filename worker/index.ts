@@ -34,7 +34,7 @@ app.get("api/services", async (c) => {
 
 app.get("api/services/:id", (c) => {
   const id = c.req.param("id");
-  const service = services.find((item) => item.id === id);
+  const service = .find((item) => item.id === id);
 
   if (!service) {
     return c.json(

@@ -1,8 +1,5 @@
 import { Hono } from "hono";
 import type { Bindings } from "../src/bindings";
-import type { Service } from "../src/types";
-
-const services: Service[] = [];
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -34,9 +31,23 @@ app.get("/api/services", async (c) => {
   });
 });
 
-app.get("/api/services/:id", (c) => {
+app.get("/api/services/:id", async (c) => {
   const id = c.req.param("id");
-  const service = services.find((item) => item.id === id);
+
+  const service = await c.env.DB.prepare(
+    `
+      SELECT
+        Services.ID,
+        Services.Name AS name,
+        Statuses.Description AS status,
+        Services.Description AS description
+      FROM Services
+      JOIN Statuses ON Services.Status = Statuses.ID
+      WHERE Services.ID = ?
+    `,
+  )
+    .bind(id)
+    .first();
 
   if (!service) {
     return c.json(
@@ -117,11 +128,25 @@ app.post("/api/services", async (c) => {
   );
 });
 
-app.delete("/api/services/:id", (c) => {
+app.delete("/api/services/:id", async (c) => {
   const id = c.req.param("id");
-  const index = services.findIndex((item) => item.id === id);
 
-  if (index === -1) {
+  const existingService = await c.env.DB.prepare(
+    `
+      SELECT
+        Services.ID AS id,
+        Services.Name AS name,
+        Statuses.Description AS status,
+        Services.Description AS description
+      FROM Services
+      JOIN Statuses ON Services.Status = Statuses.ID
+      WHERE Services.ID = ?
+    `,
+  )
+    .bind(id)
+    .first();
+
+  if (!existingService) {
     return c.json(
       {
         error: "Service not found",
@@ -131,11 +156,11 @@ app.delete("/api/services/:id", (c) => {
     );
   }
 
-  const deletedService = services.splice(index, 1)[0];
+  await c.env.DB.prepare("DELETE FROM Services WHERE ID = ?").bind(id).run();
 
   return c.json({
     deleted: true,
-    service: deletedService,
+    service: existingService,
   });
 });
 

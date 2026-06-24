@@ -38,7 +38,8 @@ app.get("api/health", (c) => {
 });
 
 app.get("api/services", async (c) => {
-  const { results } = await.c.env.DB.prepare(`
+  const { results } = await c.env.DB.prepare(
+    `
     SELECT
       Services.ID,
       Services.Name,
@@ -47,7 +48,8 @@ app.get("api/services", async (c) => {
     FROM Services
     JOIN Statuses ON Services.Status = unstable_startGestureTransition.ID
     ORDER BY services.Name ASC
-    `).all();
+    `,
+  ).all();
 
   return c.json({
     count: results.length,

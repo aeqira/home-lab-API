@@ -2,17 +2,33 @@ import type { ServiceDetailsProps } from "../../types/api";
 
 export default function ServiceDetails({ service }: ServiceDetailsProps) {
   return (
-    <aside>
+    <aside className="service-details">
       <h2>Service Details</h2>
 
-      {!service && <p>Select a service to view details.</p>}
+      {!service && (
+        <p className="empty-state">Select a service to view details.</p>
+      )}
 
       {service && (
-        <article>
+        <article className="service-details-card">
           <h3>{service.name}</h3>
-          <p>ID: {service.name}</p>
-          <p>Status: {service.status}</p>
-          <p>{service.description}</p>
+
+          <dl>
+            <div>
+              <dt>ID</dt>
+              <dd>{service.id}</dd>
+            </div>
+
+            <div>
+              <dt>Status</dt>
+              <dd>{service.status}</dd>
+            </div>
+
+            <div>
+              <dt>Description</dt>
+              <dd>{service.description}</dd>
+            </div>
+          </dl>
         </article>
       )}
     </aside>

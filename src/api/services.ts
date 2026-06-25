@@ -1,38 +1,55 @@
-import type { HealthOverview, Service, ServiceResponse } from "../types/api";
+import type {
+  CreateServiceInput,
+  DeleteServiceResponse,
+  HealthOverview,
+  Service,
+  ServiceResponse,
+  UpdateServiceInput,
+} from "../types/api";
+
+type ApiError = {
+  error?: string;
+  message?: string;
+};
+
+async function parseResponse<T>(response: Response): Promise<T> {
+  if (response.ok) {
+    return response.json() as Promise<T>;
+  }
+
+  let body: ApiError | null = null;
+
+  try {
+    body = (await response.json()) as ApiError;
+  } catch {
+    // Ignore invalid JSON responses.
+  }
+
+  throw new Error(
+    body?.message ??
+      body?.error ??
+      `Request failed with status ${response.status}`,
+  );
+}
 
 export async function getHealthOverview(): Promise<HealthOverview> {
   const response = await fetch("/api/health");
-
-  if (!response.ok) {
-    throw new Error(`Health API failed with status ${response.status}`);
-  }
-
-  return response.json();
+  return parseResponse<HealthOverview>(response);
 }
 
 export async function getServices(): Promise<ServiceResponse> {
   const response = await fetch("/api/services");
-
-  if (!response.ok) {
-    throw new Error(`Services API failed with status ${response.status}`);
-  }
-
-  return response.json();
+  return parseResponse<ServiceResponse>(response);
 }
 
 export async function getService(id: string): Promise<Service> {
   const response = await fetch(`/api/services/${id}`);
-
-  if (!response.ok) {
-    throw new Error(`Service API failed with status ${response.status}`);
-  }
-
-  return response.json();
+  return parseResponse<Service>(response);
 }
 
 export async function createService(
-  service: Omit<Service, "status"> & { status: string },
-) {
+  service: CreateServiceInput,
+): Promise<Service> {
   const response = await fetch("/api/services", {
     method: "POST",
     headers: {
@@ -41,23 +58,30 @@ export async function createService(
     body: JSON.stringify(service),
   });
 
-  if (!response.ok) {
-    throw new Error(`Create failed with status ${response.status}`);
-  }
+  return parseResponse<Service>(response);
+}
 
-  return response.json();
+export async function updateService(
+  id: string,
+  service: UpdateServiceInput,
+): Promise<Service> {
+  const response = await fetch(`/api/services/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(service),
+  });
+
+  return parseResponse<Service>(response);
 }
 
 export async function deleteService(
   id: string,
-): Promise<{ deleted: boolean; service: Service }> {
+): Promise<DeleteServiceResponse> {
   const response = await fetch(`/api/services/${id}`, {
     method: "DELETE",
   });
 
-  if (!response.ok) {
-    throw new Error(`Delete failed with status ${response.status}`);
-  }
-
-  return response.json();
+  return parseResponse<DeleteServiceResponse>(response);
 }

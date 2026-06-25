@@ -1,0 +1,38 @@
+.service-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.service-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.service-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.service-form input,
+.service-form select,
+.service-form textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.form-error,
+.error-message {
+  color: var(--color-danger);
+}

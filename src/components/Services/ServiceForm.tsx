@@ -1,37 +1,72 @@
-import React, { useState } from "react";
+import { useState, type FormEvent } from "react";
 import type { ServiceFormProps } from "../../types/api";
 
-export default function ServiceForm({ onCreate }: ServiceFormProps) {
-  const [id, setId] = useState("");
-  const [name, setName] = useState("");
-  const [status, setStatus] = useState("Local Network Only");
-  const [description, setDescription] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+const DEFAULT_STATUS = "Local Network Only";
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+function generateServiceId(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "");
+}
+
+export default function ServiceForm({
+  service,
+  onCreate,
+  onUpdate,
+  onCancel,
+}: ServiceFormProps) {
+  const isEditing = Boolean(service);
+
+  const [name, setName] = useState(service?.name ?? "");
+  const [status, setStatus] = useState(service?.status ?? DEFAULT_STATUS);
+  const [description, setDescription] = useState(service?.description ?? "");
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const trimmedName = name.trim();
+    const generatedId = generateServiceId(trimmedName);
+
+    if (!trimmedName) {
+      setFormError("Service name is required.");
+      return;
+    }
+
+    if (!generatedId) {
+      setFormError("Service name must include at least one letter or number.");
+      return;
+    }
+
+    setFormError(null);
     setSubmitting(true);
 
     try {
-      await onCreate({
-        id,
-        name,
+      const payload = {
+        id: service?.id ?? generatedId,
+        name: trimmedName,
         status,
-        description: description,
-      });
+        description: description.trim(),
+      };
 
-      setId("");
-      setName("");
-      setStatus("");
-      setDescription("");
+      if (service) {
+        await onUpdate(payload);
+      } else {
+        await onCreate(payload);
+      }
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <section>
-      <h2>Create Service</h2>
+    <section className="service-form">
+      <h2>{isEditing ? "Update Service" : "Create Service"}</h2>
+
+      {formError && <p className="form-error">{formError}</p>}
 
       <form onSubmit={handleSubmit}>
         <label>
@@ -41,19 +76,7 @@ export default function ServiceForm({ onCreate }: ServiceFormProps) {
             onChange={(event) => setName(event.target.value)}
           />
         </label>
-        <label>
-          ID
-          <input
-            value={id}
-            onChange={(event) => {
-              const newName = event.target.value;
 
-              setName(newName);
-
-              setId(newName.trim().toLowerCase().replace(/\s+/g, ""));
-            }}
-          />
-        </label>
         <label>
           Status
           <select
@@ -66,6 +89,7 @@ export default function ServiceForm({ onCreate }: ServiceFormProps) {
             <option>Disabled</option>
           </select>
         </label>
+
         <label>
           Description
           <textarea
@@ -74,9 +98,21 @@ export default function ServiceForm({ onCreate }: ServiceFormProps) {
           />
         </label>
 
-        <button type="submit" disabled={submitting}>
-          {submitting ? "Creating..." : "Create Service"}
-        </button>
+        <div className="form-actions">
+          <button type="submit" disabled={submitting}>
+            {submitting
+              ? isEditing
+                ? "Updating..."
+                : "Creating..."
+              : isEditing
+                ? "Update Service"
+                : "Create Service"}
+          </button>
+
+          <button type="button" onClick={onCancel} disabled={submitting}>
+            Cancel
+          </button>
+        </div>
       </form>
     </section>
   );

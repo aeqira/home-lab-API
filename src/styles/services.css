@@ -1,0 +1,99 @@
+.service-table-section,
+.service-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.service-table-section {
+  min-width: 0;
+}
+
+.service-table-wrapper {
+  overflow-x: auto;
+}
+
+.service-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.service-table thead {
+  background: var(--color-surface-muted);
+}
+
+.service-table th {
+  color: var(--color-heading);
+  font-weight: 600;
+}
+
+.service-table th,
+.service-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.service-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.service-table tbody tr:nth-child(even) {
+  background: var(--color-surface-muted);
+}
+
+.service-table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+}
+
+.actions-column {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.service-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+}
+
+.service-details {
+  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  min-height: 18rem;
+}
+
+.service-details-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.service-details dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.75rem 1rem;
+  margin: 0;
+}
+
+.service-details dt {
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.service-details dd {
+  margin: 0;
+}
+
+.empty-state {
+  color: var(--color-text);
+  opacity: 0.75;
+}

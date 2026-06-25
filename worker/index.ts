@@ -1,9 +1,28 @@
 import { Hono } from "hono";
 import type { Bindings } from "../src/bindings";
 
+type ServiceBody = {
+  id?: string;
+  name?: string;
+  status?: string;
+  description?: string;
+};
+
 const app = new Hono<{ Bindings: Bindings }>();
 
-app.get("api/health", async (c) => {
+const serviceSelectSql = `
+  SELECT
+    Services.ID AS id,
+    Services.Name AS name,
+    Statuses.Description AS status,
+    Services.Description AS description,
+    Services.CreatedAt AS createdAt,
+    Services.UpdatedAt AS updatedAt
+  FROM Services
+  JOIN Statuses ON Services.Status = Statuses.ID
+`;
+
+app.get("/api/health", async (c) => {
   const serviceCountRow = await c.env.DB.prepare(
     "SELECT COUNT(*) AS count FROM Services",
   ).first<{ count: number }>();
@@ -31,16 +50,7 @@ app.get("api/health", async (c) => {
 
 app.get("/api/services", async (c) => {
   const { results } = await c.env.DB.prepare(
-    `
-    SELECT
-      Services.ID AS id,
-      Services.Name AS name,
-      Statuses.Description AS status,
-      Services.Description AS description
-    FROM Services
-    JOIN Statuses ON Services.Status = Statuses.ID
-    ORDER BY services.Name ASC
-    `,
+    `${serviceSelectSql} ORDER BY Services.Name ASC`,
   ).all();
 
   return c.json({
@@ -49,57 +59,24 @@ app.get("/api/services", async (c) => {
   });
 });
 
-app.get("/api/status-blocks", async (c) => {
-  const { results } = await c.env.DB.prepare(
-    `
-    SELECT
-      Services.ID AS id,
-      Services.Name AS name,
-      Statuses.Description AS status
-    FROM Services
-    JOIN Statuses ON Services.Status = Statuses.ID
-    ORDER BY services.Name ASC
-  `,
-  ).all();
-
-  return c.json({
-    blocks: results,
-  });
-});
-
 app.get("/api/services/:id", async (c) => {
   const id = c.req.param("id");
 
   const service = await c.env.DB.prepare(
-    `
-      SELECT
-        Services.ID,
-        Services.Name AS name,
-        Statuses.Description AS status,
-        Services.Description AS description
-      FROM Services
-      JOIN Statuses ON Services.Status = Statuses.ID
-      WHERE Services.ID = ?
-    `,
+    `${serviceSelectSql} WHERE Services.ID = ?`,
   )
     .bind(id)
     .first();
 
   if (!service) {
-    return c.json(
-      {
-        error: "Service not found",
-        id,
-      },
-      404,
-    );
+    return c.json({ error: "Service not found", id }, 404);
   }
 
   return c.json(service);
 });
 
 app.post("/api/services", async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json<ServiceBody>();
 
   if (!body.id || !body.name) {
     return c.json(
@@ -112,7 +89,7 @@ app.post("/api/services", async (c) => {
   }
 
   const status = body.status ?? "Local Network Only";
-  const description = body.description ?? "No description provided";
+  const description = body.description ?? "";
 
   const statusRow = await c.env.DB.prepare(
     "SELECT ID AS id FROM Statuses WHERE Description = ?",
@@ -132,7 +109,7 @@ app.post("/api/services", async (c) => {
   }
 
   const existingService = await c.env.DB.prepare(
-    "SELECT ID FROM Services WHERE ID = ?",
+    "SELECT ID AS id FROM Services WHERE ID = ?",
   )
     .bind(body.id)
     .first<{ id: string }>();
@@ -148,7 +125,10 @@ app.post("/api/services", async (c) => {
   }
 
   await c.env.DB.prepare(
-    "INSERT INTO Services (ID, Name, Status, Description) VALUES (?, ?, ?, ?)",
+    `
+      INSERT INTO Services (ID, Name, Status, Description)
+      VALUES (?, ?, ?, ?)
+    `,
   )
     .bind(body.id, body.name, statusRow.id, description)
     .run();
@@ -164,32 +144,84 @@ app.post("/api/services", async (c) => {
   );
 });
 
+app.put("/api/services/:id", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json<ServiceBody>();
+
+  if (!body.name) {
+    return c.json(
+      {
+        error: "Validation failed",
+        required: ["name"],
+      },
+      400,
+    );
+  }
+
+  const status = body.status ?? "Local Network Only";
+  const description = body.description ?? "";
+
+  const statusRow = await c.env.DB.prepare(
+    "SELECT ID AS id FROM Statuses WHERE Description = ?",
+  )
+    .bind(status)
+    .first<{ id: number }>();
+
+  if (!statusRow) {
+    return c.json(
+      {
+        error: "Invalid status",
+        received: status,
+        allowed: ["Offline", "Online", "Local Network Only", "Disabled"],
+      },
+      400,
+    );
+  }
+
+  const existingService = await c.env.DB.prepare(
+    "SELECT ID AS id FROM Services WHERE ID = ?",
+  )
+    .bind(id)
+    .first<{ id: string }>();
+
+  if (!existingService) {
+    return c.json({ error: "Service not found", id }, 404);
+  }
+
+  await c.env.DB.prepare(
+    `
+      UPDATE Services
+      SET
+        Name = ?,
+        Status = ?,
+        Description = ?,
+        UpdatedAt = CURRENT_TIMESTAMP
+      WHERE ID = ?
+    `,
+  )
+    .bind(body.name, statusRow.id, description, id)
+    .run();
+
+  const updatedService = await c.env.DB.prepare(
+    `${serviceSelectSql} WHERE Services.ID = ?`,
+  )
+    .bind(id)
+    .first();
+
+  return c.json(updatedService);
+});
+
 app.delete("/api/services/:id", async (c) => {
   const id = c.req.param("id");
 
   const existingService = await c.env.DB.prepare(
-    `
-      SELECT
-        Services.ID AS id,
-        Services.Name AS name,
-        Statuses.Description AS status,
-        Services.Description AS description
-      FROM Services
-      JOIN Statuses ON Services.Status = Statuses.ID
-      WHERE Services.ID = ?
-    `,
+    `${serviceSelectSql} WHERE Services.ID = ?`,
   )
     .bind(id)
     .first();
 
   if (!existingService) {
-    return c.json(
-      {
-        error: "Service not found",
-        id,
-      },
-      404,
-    );
+    return c.json({ error: "Service not found", id }, 404);
   }
 
   await c.env.DB.prepare("DELETE FROM Services WHERE ID = ?").bind(id).run();

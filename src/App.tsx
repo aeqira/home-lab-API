@@ -1,97 +1,64 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import "./App.css";
-
-import {
-  createService,
-  getHealthOverview,
-  getService,
-  getServices,
-} from "./api/services";
-import type { HealthOverview, Service } from "./types/api";
 
 import HealthOverviewStatus from "./components/Dashboard/HealthOverview";
 import Header from "./components/Layout/Header";
 import ServiceDetails from "./components/Services/ServiceDetails";
-import ServiceTable from "./components/Services/ServiceTable";
 import ServiceForm from "./components/Services/ServiceForm";
+import ServiceTable from "./components/Services/ServiceTable";
+
+import { useServices } from "./hooks/useServices";
+import { useHealth } from "./hooks/useHealth";
 
 function App() {
-  const [services, setServices] = useState<Service[]>([]);
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [healthOverview, setHealthOverview] = useState<HealthOverview | null>(
-    null,
-  );
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadHealthOverview = useCallback(async () => {
-    const data = await getHealthOverview();
-    setHealthOverview(data);
-  }, []);
-
-  const loadServices = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await getServices();
-      setServices(data.services);
-      await loadHealthOverview();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, [loadHealthOverview]);
-
-  const loadServiceDetails = useCallback(async (id: string) => {
-    setSelectedService(null);
-    setError(null);
-
-    try {
-      const data = await getService(id);
-      setSelectedService(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    }
-  }, []);
-
-  async function handleCreateService(service: Service) {
-    setError(null);
-
-    try {
-      await createService(service);
-      await loadServices();
-      await loadHealthOverview();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    }
-  }
+  const { healthOverview, healthLoading, healthError, loadHealthOverview } =
+    useHealth();
+  const dashboard = useServices({ onServicesChanged: loadHealthOverview });
 
   useEffect(() => {
-    async function loadInitialData() {
-      await loadServices();
-    }
-
-    void loadInitialData();
-  }, [loadServices]);
+    void dashboard.loadServices();
+  }, [dashboard.loadServices]);
 
   return (
     <main className="dashboard">
-      <Header onRefresh={loadServices} />
+      <Header
+        onRefresh={dashboard.loadServices}
+        onCreate={dashboard.openCreateForm}
+      />
+
       <HealthOverviewStatus
         overview={healthOverview}
-        fallbackServiceCount={services.length}
+        fallbackServiceCount={dashboard.services.length}
+        loading={healthLoading}
+        error={healthError}
       />
-      <ServiceForm onCreate={handleCreateService} />
-      <ServiceTable
-        services={services}
-        loading={loading}
-        error={error}
-        onSelect={loadServiceDetails}
-      />
-      <ServiceDetails service={selectedService} />
+
+      {dashboard.isServiceFormOpen && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <ServiceForm
+              key={dashboard.editingService?.id ?? "create"}
+              service={dashboard.editingService}
+              onCreate={dashboard.handleCreateService}
+              onUpdate={dashboard.handleUpdateService}
+              onCancel={dashboard.closeServiceForm}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="dashboard-grid">
+        <ServiceTable
+          services={dashboard.services}
+          loading={dashboard.loading}
+          error={dashboard.error}
+          onSelect={dashboard.loadServiceDetails}
+          onEdit={dashboard.openEditForm}
+          onDelete={dashboard.handleDeleteService}
+        />
+
+        <ServiceDetails service={dashboard.selectedService} />
+      </div>
     </main>
   );
 }

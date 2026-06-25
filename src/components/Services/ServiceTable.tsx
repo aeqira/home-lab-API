@@ -5,31 +5,74 @@ export default function ServiceTable({
   loading,
   error,
   onSelect,
+  onEdit,
+  onDelete,
 }: ServiceTableProps) {
+  if (loading) {
+    return (
+      <section className="service-table-section">
+        <h2>Services</h2>
+        <p>Loading services...</p>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="service-table-section">
+        <h2>Services</h2>
+        <p className="error-message">{error}</p>
+      </section>
+    );
+  }
+
+  if (services.length === 0) {
+    return (
+      <section className="service-table-section">
+        <h2>Services</h2>
+        <p>No services found.</p>
+      </section>
+    );
+  }
+
   return (
-    <section>
+    <section className="service-table-section">
       <h2>Services</h2>
 
-      {loading && <p>Loading Services...</p>}
-      {error && <p>{error}</p>}
+      <table className="service-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Description</th>
+            <th className="actions-column">Actions</th>
+          </tr>
+        </thead>
 
-      {!loading && services.length === 0 && <p>No Services Found</p>}
+        <tbody>
+          {services.map((service) => (
+            <tr key={service.id}>
+              <td>{service.name}</td>
+              <td>{service.status}</td>
+              <td>{service.description || "—"}</td>
 
-      {services.map((service) => (
-        <article key={service.id}>
-          <h3>{service.name}</h3>
+              <td className="service-actions">
+                <button type="button" onClick={() => onSelect(service.id)}>
+                  View
+                </button>
 
-          <p>{service.description}</p>
+                <button type="button" onClick={() => onEdit(service)}>
+                  Edit
+                </button>
 
-          <p>
-            <strong>Status:</strong> {service.status}
-          </p>
-
-          <button type="button" onClick={() => onSelect(service.id)}>
-            View Details
-          </button>
-        </article>
-      ))}
+                <button type="button" onClick={() => onDelete(service.id)}>
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }

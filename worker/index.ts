@@ -3,11 +3,29 @@ import type { Bindings } from "../src/bindings";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-app.get("api/health", (c) => {
+app.get("api/health", async (c) => {
+  const serviceCountRow = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS count FROM Services",
+  ).first<{ count: number }>();
+
+  const { results: statuses } = await c.env.DB.prepare(
+    `
+      SELECT
+        Statuses.Description AS status,
+        COUNT(Services.ID) AS count
+      FROM Statuses
+      LEFT JOIN Services ON Services.Status = Statuses.ID
+      GROUP BY Statuses.ID, Statuses.Description
+      ORDER BY Statuses.ID
+    `,
+  ).all<{ status: string; count: number }>();
+
   return c.json({
     ok: true,
     app: "home-lab",
-    stack: ["React", "Vite", "Hono", "Cloudflare Workers"],
+    stack: ["Cloudflare Workers", "D1", "Hono", "React", "Vite"],
+    serviceCount: serviceCountRow?.count ?? 0,
+    statuses,
   });
 });
 
@@ -15,10 +33,10 @@ app.get("/api/services", async (c) => {
   const { results } = await c.env.DB.prepare(
     `
     SELECT
-      Services.ID,
-      Services.Name,
-      Statuses.Description AS Status,
-      Services.Description
+      Services.ID AS id,
+      Services.Name AS name,
+      Statuses.Description AS status,
+      Services.Description AS description
     FROM Services
     JOIN Statuses ON Services.Status = Statuses.ID
     ORDER BY services.Name ASC
@@ -28,6 +46,24 @@ app.get("/api/services", async (c) => {
   return c.json({
     count: results.length,
     services: results,
+  });
+});
+
+app.get("/api/status-blocks", async (c) => {
+  const { results } = await c.env.DB.prepare(
+    `
+    SELECT
+      Services.ID AS id,
+      Services.Name AS name,
+      Statuses.Description AS status
+    FROM Services
+    JOIN Statuses ON Services.Status = Statuses.ID
+    ORDER BY services.Name ASC
+  `,
+  ).all();
+
+  return c.json({
+    blocks: results,
   });
 });
 

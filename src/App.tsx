@@ -1,141 +1,98 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./App.css";
 
+import {
+  createService,
+  getHealthOverview,
+  getService,
+  getServices,
+} from "./api/services";
+import type { HealthOverview, Service } from "./types/api";
+
+import HealthOverviewStatus from "./components/Dashboard/HealthOverview";
+import Header from "./components/Layout/Header";
+import ServiceDetails from "./components/Services/ServiceDetails";
+import ServiceTable from "./components/Services/ServiceTable";
+import ServiceForm from "./components/Services/ServiceForm";
+
 function App() {
-  const [count, setCount] = useState(0);
-  const [name, setName] = useState("unknown");
+  const [services, setServices] = useState<Service[]>([]);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [healthOverview, setHealthOverview] = useState<HealthOverview | null>(
+    null,
+  );
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadHealthOverview = useCallback(async () => {
+    const data = await getHealthOverview();
+    setHealthOverview(data);
+  }, []);
+
+  const loadServices = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await getServices();
+      setServices(data.services);
+      await loadHealthOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, [loadHealthOverview]);
+
+  const loadServiceDetails = useCallback(async (id: string) => {
+    setSelectedService(null);
+    setError(null);
+
+    try {
+      const data = await getService(id);
+      setSelectedService(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    }
+  }, []);
+
+  async function handleCreateService(service: Service) {
+    setError(null);
+
+    try {
+      await createService(service);
+      await loadServices();
+      await loadHealthOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    }
+  }
+
+  useEffect(() => {
+    async function loadInitialData() {
+      await loadServices();
+    }
+
+    void loadInitialData();
+  }, [loadServices]);
 
   return (
-    <>
-      <section id="center">
-        <div>
-          <h1>Get started with Cloudflare</h1>
-          <p>
-            Edit <code>src/App.tsx</code> or <code>worker/index.ts</code> and
-            save to test <code>HMR</code>
-          </p>
-        </div>
-        <ul
-          style={{
-            display: "flex",
-            gap: "1rem",
-            listStyle: "none",
-            padding: 0,
-          }}
-        >
-          <li>
-            <button
-              className="counter"
-              onClick={() => setCount((count) => count + 1)}
-            >
-              Count is {count}
-            </button>
-          </li>
-          <li>
-            <button
-              className="counter"
-              onClick={() => {
-                fetch("/api/")
-                  .then((res) => res.json())
-                  .then((data) => setName(data.name));
-              }}
-              aria-label="get name"
-            >
-              Name from API is: {name}
-            </button>
-          </li>
-        </ul>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                Learn more
-              </a>
-            </li>
-            <li>
-              <a href="https://workers.cloudflare.com/" target="_blank">
-                Workers Docs
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    <main className="dashboard">
+      <Header onRefresh={loadServices} />
+      <HealthOverviewStatus
+        overview={healthOverview}
+        fallbackServiceCount={services.length}
+      />
+      <ServiceForm onCreate={handleCreateService} />
+      <ServiceTable
+        services={services}
+        loading={loading}
+        error={error}
+        onSelect={loadServiceDetails}
+      />
+      <ServiceDetails service={selectedService} />
+    </main>
   );
 }
 

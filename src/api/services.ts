@@ -33,24 +33,24 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export async function getHealthOverview(): Promise<HealthOverview> {
-  const response = await fetch("/api/health");
+  const response = await fetch("/api/v1/health");
   return parseResponse<HealthOverview>(response);
 }
 
 export async function getServices(): Promise<ServiceResponse> {
-  const response = await fetch("/api/services");
+  const response = await fetch("/api/v1/services");
   return parseResponse<ServiceResponse>(response);
 }
 
 export async function getService(id: string): Promise<Service> {
-  const response = await fetch(`/api/services/${id}`);
+  const response = await fetch(`/api/v1/services/${id}`);
   return parseResponse<Service>(response);
 }
 
 export async function createService(
   service: CreateServiceInput,
 ): Promise<Service> {
-  const response = await fetch("/api/services", {
+  const response = await fetch("/api/v1/services", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -65,7 +65,7 @@ export async function updateService(
   id: string,
   service: UpdateServiceInput,
 ): Promise<Service> {
-  const response = await fetch(`/api/services/${id}`, {
+  const response = await fetch(`/api/v1/services/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -79,7 +79,7 @@ export async function updateService(
 export async function deleteService(
   id: string,
 ): Promise<DeleteServiceResponse> {
-  const response = await fetch(`/api/services/${id}`, {
+  const response = await fetch(`/api/v1/services/${id}`, {
     method: "DELETE",
   });
 

@@ -41,8 +41,13 @@ export type HealthOverview = {
 };
 
 export type HeaderProps = {
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
   onCreate: () => void;
+  isRefreshing: boolean;
+  systemStatus: string;
+  serviceCount: number;
+  healthyCount: number;
+  offlineCount: number;
 };
 
 export type HealthOverviewProps = {

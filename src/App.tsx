@@ -15,15 +15,33 @@ function App() {
     useHealth();
   const dashboard = useServices({ onServicesChanged: loadHealthOverview });
 
+  const isRefreshing = dashboard.loading || healthLoading;
+  const serviceCount =
+    healthOverview?.serviceCount ?? dashboard.services.length;
+  const healthyCount =
+    healthOverview?.statuses?.find((item) => item.status === "online")?.count ??
+    dashboard.services.filter((service) => service.status === "online").length;
+  const offlineCount = Math.max(serviceCount - healthyCount, 0);
+  const systemStatus =
+    healthOverview?.ok === false || offlineCount > 0
+      ? "Attention needed"
+      : "System healthy";
+
   useEffect(() => {
     void dashboard.loadServices();
-  }, [dashboard.loadServices]);
+    void loadHealthOverview();
+  }, [dashboard.loadServices, loadHealthOverview]);
 
   return (
     <main className="dashboard">
       <Header
         onRefresh={dashboard.loadServices}
         onCreate={dashboard.openCreateForm}
+        isRefreshing={isRefreshing}
+        systemStatus={systemStatus}
+        serviceCount={serviceCount}
+        healthyCount={healthyCount}
+        offlineCount={offlineCount}
       />
 
       <HealthOverviewStatus

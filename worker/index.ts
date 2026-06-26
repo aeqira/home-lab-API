@@ -48,7 +48,7 @@ app.get("/api/health", async (c) => {
   });
 });
 
-app.get("/api/services", async (c) => {
+app.get("/api/v1/services", async (c) => {
   const { results } = await c.env.DB.prepare(
     `${serviceSelectSql} ORDER BY Services.Name ASC`,
   ).all();
@@ -59,7 +59,7 @@ app.get("/api/services", async (c) => {
   });
 });
 
-app.get("/api/services/:id", async (c) => {
+app.get("/api/v1/services/:id", async (c) => {
   const id = c.req.param("id");
 
   const service = await c.env.DB.prepare(
@@ -75,7 +75,7 @@ app.get("/api/services/:id", async (c) => {
   return c.json(service);
 });
 
-app.post("/api/services", async (c) => {
+app.post("/api/v1/services", async (c) => {
   const body = await c.req.json<ServiceBody>();
 
   if (!body.id || !body.name) {
@@ -144,7 +144,7 @@ app.post("/api/services", async (c) => {
   );
 });
 
-app.put("/api/services/:id", async (c) => {
+app.put("/api/v1/services/:id", async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json<ServiceBody>();
 
@@ -211,7 +211,7 @@ app.put("/api/services/:id", async (c) => {
   return c.json(updatedService);
 });
 
-app.delete("/api/services/:id", async (c) => {
+app.delete("/api/v1/services/:id", async (c) => {
   const id = c.req.param("id");
 
   const existingService = await c.env.DB.prepare(
@@ -232,7 +232,7 @@ app.delete("/api/services/:id", async (c) => {
   });
 });
 
-app.get("/api/test-error", () => {
+app.get("/api/v1/test-error", () => {
   throw new Error("This is a test error");
 });
 

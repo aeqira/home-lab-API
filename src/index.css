@@ -8,6 +8,15 @@
 
   --color-border: #e2e8f0;
   --color-primary: #0f6cbd;
+
+  --color-primary-hover: #115ea3;
+  --color-primary-active: #0f548c;
+
+  --color-button-bg: #ffffff;
+  --color-button-hover: #f8fafc;
+  --color-button-text: #0f172a;
+
+  --shadow-focus: 0 0 0 3px rgba(15, 108, 189, 0.25);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,6 +30,15 @@
 
     --color-border: #3f3f46;
     --color-primary: #60a5fa;
+
+    --color-primary-hover: #3b82f6;
+    --color-primary-active: #2563eb;
+
+    --color-button-bg: #18181b;
+    --color-button-hover: #232329;
+    --color-button-text: #fafafa;
+
+    --shadow-focus: 0 0 0 3px rgba(96, 165, 250, 0.3);
   }
 }
 

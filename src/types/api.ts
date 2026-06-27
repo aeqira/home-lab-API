@@ -1,5 +1,36 @@
 import type { ReactNode } from "react";
 
+type ResponseMetadata = {
+  app: string;
+  environment: string;
+  database: string;
+};
+
+type ServiceCount = {
+  total: number;
+  healthy: number;
+  remote: number;
+  localOnly: number;
+  offline: number;
+  disabled: number;
+};
+
+export type DashboardSummary = {
+  state: DashboardState;
+  counts: ServiceCount;
+  lastUpdated: string;
+};
+
+export type DashboardState = "healthy" | "warning" | "critical";
+
+export type DashboardResponse = {
+  apiVersion: "2";
+  generatedAt: string;
+  summary: DashboardSummary;
+  services: Service[];
+  metadata: ResponseMetadata;
+};
+
 export type Service = {
   id: string;
   name: string;
@@ -32,29 +63,11 @@ export type HealthStatusCount = {
   count: number;
 };
 
-export type HealthOverview = {
-  ok: boolean;
-  app: string;
-  stack: string[];
-  serviceCount?: number;
-  statuses?: HealthStatusCount[];
-};
-
 export type HeaderProps = {
   onRefresh: () => void | Promise<void>;
   onCreate: () => void;
   isRefreshing: boolean;
-  systemStatus: string;
-  serviceCount: number;
-  healthyCount: number;
-  offlineCount: number;
-};
-
-export type HealthOverviewProps = {
-  overview: HealthOverview | null;
-  fallbackServiceCount: number;
-  loading: boolean;
-  error: string | null;
+  summary?: DashboardSummary;
 };
 
 export type OverviewCardProps = {

@@ -8,6 +8,19 @@ type ServiceBody = {
   description?: string;
 };
 
+type ServiceStatus = "Online" | "Offline" | "Local Network Only" | "Disabled";
+
+type DashboardService = {
+  id: string;
+  name: string;
+  status: ServiceStatus;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type DashboardState = "healthy" | "warning" | "critical";
+
 const app = new Hono<{ Bindings: Bindings }>();
 
 const serviceSelectSql = `
@@ -22,7 +35,27 @@ const serviceSelectSql = `
   JOIN Statuses ON Services.Status = Statuses.ID
 `;
 
-app.get("/api/health", async (c) => {
+function getDashboardState(counts: {
+  serviceCount: number;
+  offlineCount: number;
+  disabledCount: number;
+}): DashboardState {
+  if (counts.serviceCount === 0) {
+    return "warning";
+  }
+
+  if (counts.offlineCount === counts.serviceCount) {
+    return "critical";
+  }
+
+  if (counts.offlineCount > 0 || counts.disabledCount > 0) {
+    return "warning";
+  }
+
+  return "healthy";
+}
+
+app.get("/api/v1/health", async (c) => {
   const serviceCountRow = await c.env.DB.prepare(
     "SELECT COUNT(*) AS count FROM Services",
   ).first<{ count: number }>();
@@ -45,6 +78,62 @@ app.get("/api/health", async (c) => {
     stack: ["Cloudflare Workers", "D1", "Hono", "React", "Vite"],
     serviceCount: serviceCountRow?.count ?? 0,
     statuses,
+  });
+});
+
+app.get("/api/v2/dashboard", async (c) => {
+  const generatedAt = new Date().toISOString();
+
+  const { results: services } = await c.env.DB.prepare(
+    `${serviceSelectSql} ORDER BY Services.Name ASC`,
+  ).all<DashboardService>();
+
+  const remoteCount = services.filter(
+    (service) => service.status === "Online",
+  ).length;
+
+  const localOnlyCount = services.filter(
+    (service) => service.status === "Local Network Only",
+  ).length;
+
+  const healthyCount = remoteCount + localOnlyCount;
+
+  const offlineCount = services.filter(
+    (service) => service.status === "Offline",
+  ).length;
+
+  const disabledCount = services.filter(
+    (service) => service.status === "Disabled",
+  ).length;
+
+  const serviceCount = services.length;
+  const state = getDashboardState({
+    serviceCount,
+    offlineCount,
+    disabledCount,
+  });
+
+  return c.json({
+    apiVersion: "2",
+    generatedAt,
+    summary: {
+      state,
+      counts: {
+        total: serviceCount,
+        healthy: healthyCount,
+        remote: remoteCount,
+        localOnly: localOnlyCount,
+        offline: offlineCount,
+        disabled: disabledCount,
+      },
+      lastUpdated: generatedAt,
+    },
+    services,
+    metadata: {
+      app: "home-lab",
+      environment: "development",
+      database: "connected",
+    },
   });
 });
 

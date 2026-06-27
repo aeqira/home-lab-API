@@ -5,38 +5,19 @@ import {
 } from "@fluentui/react-icons";
 
 import OverviewCard from "./OverviewCard";
-import type { HealthOverviewProps } from "../../types/api";
+import type { DashboardSummary } from "../../types/api";
 
-function getStatusIcon(status: string) {
-  switch (status.toLowerCase()) {
-    case "online":
-      return <CheckmarkCircle24Regular />;
-
-    case "offline":
-      return <Warning24Regular />;
-
-    default:
-      return <Server24Regular />;
-  }
-}
+type HealthOverviewStatusProps = {
+  summary?: DashboardSummary;
+  loading: boolean;
+  error: string | null;
+};
 
 export default function HealthOverviewStatus({
-  overview,
-  fallbackServiceCount,
+  summary,
   loading,
   error,
-}: HealthOverviewProps) {
-  if (!overview) {
-    return (
-      <section className="overview">
-        <h2>Health Overview</h2>
-        <p>Loading dashboard...</p>
-      </section>
-    );
-  }
-
-  const serviceCount = overview.serviceCount ?? fallbackServiceCount;
-
+}: HealthOverviewStatusProps) {
   if (loading) {
     return (
       <section className="overview">
@@ -55,6 +36,29 @@ export default function HealthOverviewStatus({
     );
   }
 
+  if (!summary) {
+    return (
+      <section className="overview">
+        <h2>Health Overview</h2>
+        <p>No dashboard data available.</p>
+      </section>
+    );
+  }
+
+  const stateLabel =
+    summary.state === "healthy"
+      ? "Healthy"
+      : summary.state === "critical"
+        ? "Critical"
+        : "Attention";
+
+  const stateIcon =
+    summary.state === "healthy" ? (
+      <CheckmarkCircle24Regular />
+    ) : (
+      <Warning24Regular />
+    );
+
   return (
     <section className="overview">
       <h2>Health Overview</h2>
@@ -62,24 +66,39 @@ export default function HealthOverviewStatus({
       <div className="overview-grid">
         <OverviewCard
           title="System Health"
-          value={overview.ok ? "Healthy" : "Unhealthy"}
-          icon={getStatusIcon(overview.ok ? "online" : "offline")}
+          value={stateLabel}
+          icon={stateIcon}
         />
 
         <OverviewCard
           title="Services"
-          value={serviceCount}
+          value={summary.counts.total}
           icon={<Server24Regular />}
         />
 
-        {overview.statuses?.map(({ status, count }) => (
-          <OverviewCard
-            key={status}
-            title={status}
-            value={count}
-            icon={getStatusIcon(status)}
-          />
-        ))}
+        <OverviewCard
+          title="Healthy"
+          value={summary.counts.healthy}
+          icon={<CheckmarkCircle24Regular />}
+        />
+
+        <OverviewCard
+          title="Remote"
+          value={summary.counts.remote}
+          icon={<Server24Regular />}
+        />
+
+        <OverviewCard
+          title="Local Only"
+          value={summary.counts.localOnly}
+          icon={<Server24Regular />}
+        />
+
+        <OverviewCard
+          title="Offline"
+          value={summary.counts.offline}
+          icon={<Warning24Regular />}
+        />
       </div>
     </section>
   );

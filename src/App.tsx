@@ -8,47 +8,32 @@ import ServiceForm from "./components/Services/ServiceForm";
 import ServiceTable from "./components/Services/ServiceTable";
 
 import { useServices } from "./hooks/useServices";
-import { useHealth } from "./hooks/useHealth";
+import { useDashboard } from "./hooks/useDashboard";
 
 function App() {
-  const { healthOverview, healthLoading, healthError, loadHealthOverview } =
-    useHealth();
-  const dashboard = useServices({ onServicesChanged: loadHealthOverview });
-
-  const isRefreshing = dashboard.loading || healthLoading;
-  const serviceCount =
-    healthOverview?.serviceCount ?? dashboard.services.length;
-  const healthyCount =
-    healthOverview?.statuses?.find((item) => item.status === "online")?.count ??
-    dashboard.services.filter((service) => service.status === "online").length;
-  const offlineCount = Math.max(serviceCount - healthyCount, 0);
-  const systemStatus =
-    healthOverview?.ok === false || offlineCount > 0
-      ? "Attention needed"
-      : "System healthy";
+  const dashboardV2 = useDashboard();
+  const dashboard = useServices({
+    onServicesChanged: dashboardV2.loadDashboard,
+  });
 
   useEffect(() => {
     void dashboard.loadServices();
-    void loadHealthOverview();
-  }, [dashboard.loadServices, loadHealthOverview]);
+    void dashboardV2.loadDashboard();
+  }, [dashboard.loadServices, dashboardV2.loadDashboard]);
 
   return (
     <main className="dashboard">
       <Header
-        onRefresh={dashboard.loadServices}
+        onRefresh={dashboardV2.loadDashboard}
         onCreate={dashboard.openCreateForm}
-        isRefreshing={isRefreshing}
-        systemStatus={systemStatus}
-        serviceCount={serviceCount}
-        healthyCount={healthyCount}
-        offlineCount={offlineCount}
+        isRefreshing={dashboardV2.loading}
+        summary={dashboardV2.dashboard?.summary}
       />
 
       <HealthOverviewStatus
-        overview={healthOverview}
-        fallbackServiceCount={dashboard.services.length}
-        loading={healthLoading}
-        error={healthError}
+        summary={dashboardV2.dashboard?.summary}
+        loading={dashboardV2.loading}
+        error={dashboardV2.error}
       />
 
       {dashboard.isServiceFormOpen && (
@@ -67,9 +52,9 @@ function App() {
 
       <div className="dashboard-grid">
         <ServiceTable
-          services={dashboard.services}
-          loading={dashboard.loading}
-          error={dashboard.error}
+          services={dashboardV2.dashboard?.services ?? dashboard.services}
+          loading={dashboardV2.loading || dashboard.loading}
+          error={dashboardV2.error ?? dashboard.error}
           onSelect={dashboard.loadServiceDetails}
           onEdit={dashboard.openEditForm}
           onDelete={dashboard.handleDeleteService}

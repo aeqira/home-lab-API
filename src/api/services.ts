@@ -1,10 +1,10 @@
 import type {
   CreateServiceInput,
   DeleteServiceResponse,
-  HealthOverview,
   Service,
   ServiceResponse,
   UpdateServiceInput,
+  DashboardResponse,
 } from "../types/api";
 
 type ApiError = {
@@ -30,11 +30,6 @@ async function parseResponse<T>(response: Response): Promise<T> {
       body?.error ??
       `Request failed with status ${response.status}`,
   );
-}
-
-export async function getHealthOverview(): Promise<HealthOverview> {
-  const response = await fetch("/api/v1/health");
-  return parseResponse<HealthOverview>(response);
 }
 
 export async function getServices(): Promise<ServiceResponse> {
@@ -84,4 +79,9 @@ export async function deleteService(
   });
 
   return parseResponse<DeleteServiceResponse>(response);
+}
+
+export async function getDashboard(): Promise<DashboardResponse> {
+  const response = await fetch("/api/v2/dashboard");
+  return parseResponse<DashboardResponse>(response);
 }
